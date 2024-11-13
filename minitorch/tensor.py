@@ -94,14 +94,14 @@ class Tensor:
             self.name = str(self.unique_id)
 
         self.f = backend
-        #self.size = self._tensor.size
-        #self.dims = self._tensor.dims
+        # self.size = self._tensor.size
+        # self.dims = self._tensor.dims
 
     @property
     def dims(self) -> int:
         """Returns an int which is the dimensionality of the tensor."""
         return self._tensor.dims
-    
+
     @property
     def size(self) -> int:
         """Returns an int which is the size of the tensor."""

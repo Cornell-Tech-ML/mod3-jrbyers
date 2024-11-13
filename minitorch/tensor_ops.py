@@ -274,7 +274,6 @@ def tensor_map(
         in_shape: Shape,
         in_strides: Strides,
     ) -> None:
-        
         out_index = np.zeros(len(out_shape), dtype=np.int32)
         in_index = np.zeros(len(in_shape), dtype=np.int32)
         for i in range(len(out)):
@@ -373,7 +372,6 @@ def tensor_reduce(
         a_strides: Strides,
         reduce_dim: int,
     ) -> None:
-        
         out_index = np.zeros(len(out_shape), dtype=np.int32)
         reduce_size = a_shape[reduce_dim]
         for i in range(len(out)):

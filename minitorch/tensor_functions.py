@@ -127,10 +127,9 @@ class Mul(Function):
     def backward(ctx: Context, grad_output: Tensor) -> Tuple[Tensor, Tensor]:
         """Backward pass of multiplication."""
         (t1, t2) = ctx.saved_values
-        return(
+        return (
             grad_output.f.mul_zip(t2, grad_output),
             grad_output.f.mul_zip(t1, grad_output),
-
         )
 
 
@@ -213,7 +212,8 @@ class Sum(Function):
     def backward(ctx: Context, grad_output: Tensor) -> tuple[Tensor, float]:
         """Backward pass derivative for sum"""
         t1_shape, dim = ctx.saved_values
-        return grad_output, 0.0    # this is all ones times the grad_output
+        return grad_output, 0.0  # this is all ones times the grad_output
+
 
 class LT(Function):
     """Checks if one tensor is less than another at each index."""

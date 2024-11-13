@@ -66,7 +66,7 @@ def to_index(ordinal: int, shape: Shape, out_index: OutIndex) -> None:
 
     """
     cur_ord = ordinal + 0
-    for i in range(len(shape) -1, -1, -1):
+    for i in range(len(shape) - 1, -1, -1):
         sh = shape[i]
         out_index[i] = int(cur_ord % sh)
         cur_ord = cur_ord // sh
@@ -135,7 +135,6 @@ def shape_broadcast(shape1: UserShape, shape2: UserShape) -> UserShape:
             if b_rev[i] != c_rev[i] and b_rev[i] != 1:
                 raise IndexingError(f"Broadcast failure {a} {b}")
     return tuple(reversed(c_rev))
-            
 
 
 def strides_from_shape(shape: UserShape) -> UserStrides:
