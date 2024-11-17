@@ -244,7 +244,37 @@ def tensor_zip(
         i = cuda.blockIdx.x * cuda.blockDim.x + cuda.threadIdx.x
 
         # TODO: Implement for Task 3.3.
-        raise NotImplementedError("Need to implement for Task 3.3")
+        # raise NotImplementedError("Need to implement for Task 3.3")
+
+        # skip thread if out of bounds
+        if i >= out_size:
+            return
+
+        # check if shape is the same
+        shape_same = True
+        for d in range(len(out_shape)):
+            if out_shape[d] != a_shape[d] or a_shape[d] != b_shape[d]:
+                shape_same = False
+                break
+        
+        # check if shape is the same
+        strides_same = True
+        for d in range(len(out_strides)):
+            if out_strides[d] != a_strides[d] or a_strides[d] != b_strides[d]:
+                strides_same = False
+                break
+
+
+        if shape_same and strides_same:  # Check if out and in are stride-aligned
+            out[i] = fn(a_storage[i], b_storage[i])
+        else:
+            to_index(i, out_shape, out_index)
+            o = index_to_position(out_index, out_strides)
+            broadcast_index(out_index, out_shape, a_shape, a_index)
+            j = index_to_position(a_index, a_strides)
+            broadcast_index(out_index, out_shape, b_shape, b_index)
+            k = index_to_position(b_index, b_strides)
+            out[o] = fn(a_storage[j], b_storage[k])
 
     return cuda.jit()(_zip)  # type: ignore
 
