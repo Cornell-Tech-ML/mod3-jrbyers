@@ -331,6 +331,7 @@ jit_sum_practice = cuda.jit()(_sum_practice)
 
 
 def sum_practice(a: Tensor) -> TensorData:
+    """Run the _sum_practice stencil code."""
     (size,) = a.shape
     threadsperblock = THREADS_PER_BLOCK
     blockspergrid = (size // THREADS_PER_BLOCK) + 1
@@ -368,20 +369,54 @@ def tensor_reduce(
         reduce_dim: int,
         reduce_value: float,
     ) -> None:
-        BLOCK_DIM = 1024
-        cache = cuda.shared.array(BLOCK_DIM, numba.float64)
-        out_index = cuda.local.array(MAX_DIMS, numba.int32)
-        out_pos = cuda.blockIdx.x
-        pos = cuda.threadIdx.x
+        BLOCK_DIM = 1024  # Number of threads per block
+        cache = cuda.shared.array(BLOCK_DIM, numba.float64)  # Shared memory
+        out_index = cuda.local.array(MAX_DIMS, numba.int32)  # Local array for indexing
+        out_pos = cuda.blockIdx.x  # Index of the current block
+        pos = cuda.threadIdx.x  # Index of the current thread within a block
 
         # TODO: Implement for Task 3.3.
-        raise NotImplementedError("Need to implement for Task 3.3")
+        # raise NotImplementedError("Need to implement for Task 3.3")
+
+        # Global thread ID and total number of threads
+        i = cuda.blockIdx.x * cuda.blockDim.x + cuda.threadIdx.x
+        reduce_size = a_shape[reduce_dim]
+
+        # Initialize shared memory with the neutral value (reduce_value)
+        # we need i threads for out_size * reduce_size because there are more
+        # threads than the out_size (because of the reduction)
+        if i < out_size * reduce_size:
+            to_index(i // reduce_size, out_shape, out_index)  # Map to output tensor index
+            o = index_to_position(out_index, out_strides)
+            if pos < reduce_size:
+                cache[pos] = a_storage[i]  
+            else:
+                cache[pos] = reduce_value
+        else:
+            cache[pos] = reduce_value
+
+        # Synchronize threads to ensure shared memory is fully populated
+        cuda.syncthreads()
+
+        # Perform reduction within shared memory
+        stride = 1
+        while stride < BLOCK_DIM:
+            if pos % (2 * stride) == 0 and pos + stride < BLOCK_DIM:
+                cache[pos] = fn(cache[pos], cache[pos + stride])
+            stride *= 2
+            cuda.syncthreads()
+
+        # Write result for this block to global memory
+        if pos == 0:
+            out[o] = cache[0]
+
+
 
     return jit(_reduce)  # type: ignore
 
 
 def _mm_practice(out: Storage, a: Storage, b: Storage, size: int) -> None:
-    """This is a practice square MM kernel to prepare for matmul.
+    """Practice square MM kernel to prepare for matmul.
 
     Given a storage `out` and two storage `a` and `b`. Where we know
     both are shape [size, size] with strides [size, 1].
@@ -414,6 +449,8 @@ def _mm_practice(out: Storage, a: Storage, b: Storage, size: int) -> None:
     BLOCK_DIM = 32
     # TODO: Implement for Task 3.3.
     raise NotImplementedError("Need to implement for Task 3.3")
+
+
 
 
 jit_mm_practice = jit(_mm_practice)
