@@ -280,7 +280,7 @@ def tensor_zip(
 
 
 def _sum_practice(out: Storage, a: Storage, size: int) -> None:
-    """This is a practice sum kernel to prepare for reduce.
+    r"""A practice sum kernel to prepare for reduce.
 
     Given an array of length $n$ and out of size $n // \text{blockDIM}$
     it should sum up each blockDim values into an out cell.
@@ -307,7 +307,24 @@ def _sum_practice(out: Storage, a: Storage, size: int) -> None:
     pos = cuda.threadIdx.x
 
     # TODO: Implement for Task 3.3.
-    raise NotImplementedError("Need to implement for Task 3.3")
+    #raise NotImplementedError("Need to implement for Task 3.3")
+
+    if i < size:
+        cache[pos] = a[i]
+    else:
+        cache[pos] = 0.0
+
+    # Synchronize threads within the block to ensure all data is loaded
+    cuda.syncthreads()
+
+    # Perform block-wide sum in shared memory (single pass)
+    if pos == 0:
+        block_sum = 0.0
+        for j in range(BLOCK_DIM):
+            block_sum += cache[j]
+        out[cuda.blockIdx.x] = block_sum
+
+
 
 
 jit_sum_practice = cuda.jit()(_sum_practice)
