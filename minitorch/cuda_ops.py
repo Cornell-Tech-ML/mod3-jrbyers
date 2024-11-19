@@ -309,22 +309,27 @@ def _sum_practice(out: Storage, a: Storage, size: int) -> None:
     # TODO: Implement for Task 3.3.
     #raise NotImplementedError("Need to implement for Task 3.3")
 
+    # load in cache if i is not out of bounds
     if i < size:
         cache[pos] = a[i]
-    else:
+    else:   # pad with zeros if i is out of bounds
         cache[pos] = 0.0
 
     # Synchronize threads within the block to ensure all data is loaded
     cuda.syncthreads()
 
-    # Perform block-wide sum in shared memory (single pass)
+    # Perform parallel reduction
+    # pairs are computed two at a time
+    stride = 1
+    while stride < BLOCK_DIM:
+        if pos % (2 * stride) == 0 and pos + stride < BLOCK_DIM:
+            cache[pos] = cache[pos] + cache[pos + stride]
+        stride *= 2
+        cuda.syncthreads()
+
+    # Write the reduced result to global memory
     if pos == 0:
-        block_sum = 0.0
-        for j in range(BLOCK_DIM):
-            block_sum += cache[j]
-        out[cuda.blockIdx.x] = block_sum
-
-
+        out[cuda.blockIdx.x] = cache[0]
 
 
 jit_sum_practice = cuda.jit()(_sum_practice)
@@ -447,21 +452,23 @@ def _mm_practice(out: Storage, a: Storage, b: Storage, size: int) -> None:
     # TODO: Implement for Task 3.3.
     #raise NotImplementedError("Need to implement for Task 3.3")
 
-    a_cache = cuda.shared.array(BLOCK_DIM, numba.float64)
-    b_cache = cuda.shared.array(BLOCK_DIM, numba.float64)
+    a_cache = cuda.shared.array((BLOCK_DIM, BLOCK_DIM), numba.float64)
+    b_cache = cuda.shared.array((BLOCK_DIM, BLOCK_DIM), numba.float64)
     i = cuda.blockIdx.x * cuda.blockDim.x + cuda.threadIdx.x
-    pos = cuda.threadIdx.x
+    j = cuda.blockIdx.y * cuda.blockDim.y + cuda.threadIdx.y
 
-    # load a into cache
-    # load b into cache
-    if i < 
-
-
-    # synch threads
-
-    # run matmul
     
+    if i < size and j < size:
+        a_cache[i, j] = a[i*size + j]  # load a into cache
+        b_cache[i, j] = b[i*size + j]  # load b into cache
 
+        cuda.syncthreads()
+
+        out_val = 0.0
+        for k in range(size):  # loop through k to build up output val
+            out_val += a_cache[i, k] * b_cache[k, j]
+        
+        out[i*size + j] = out_val   # assign output val
 
 
 jit_mm_practice = jit(_mm_practice)
@@ -530,7 +537,52 @@ def _tensor_matrix_multiply(
     #    b) Copy into shared memory for b matrix
     #    c) Compute the dot produce for position c[i, j]
     # TODO: Implement for Task 3.4.
-    raise NotImplementedError("Need to implement for Task 3.4")
+    #raise NotImplementedError("Need to implement for Task 3.4")
+    #a_shared[pi, pj] = a_storage[pi, pj]
+    #b_shared[pi, pj] = b_storage[pi, pj]
+
+    # Accumulate result for C[i, j]
+    result = 0.0
+
+    # Loop across shared dimension (K) in tiles of BLOCK_DIM
+    for k_tile in range((a_shape[-1] + BLOCK_DIM - 1) // BLOCK_DIM):
+        # Load tile of A into shared memory
+        a_tile_row = i
+        a_tile_col = k_tile * BLOCK_DIM + pj
+        if a_tile_row < a_shape[-2] and a_tile_col < a_shape[-1]:
+            a_shared[pi, pj] = a_storage[
+                batch * a_batch_stride
+                + a_tile_row * a_strides[-2]
+                + a_tile_col * a_strides[-1]
+            ]
+        else:
+            a_shared[pi, pj] = 0.0
+
+        # Load tile of B into shared memory
+        b_tile_row = k_tile * BLOCK_DIM + pi
+        b_tile_col = j
+        if b_tile_row < b_shape[-2] and b_tile_col < b_shape[-1]:
+            b_shared[pi, pj] = b_storage[
+                batch * b_batch_stride
+                + b_tile_row * b_strides[-2]
+                + b_tile_col * b_strides[-1]
+            ]
+        else:
+            b_shared[pi, pj] = 0.0
+
+        # Synchronize threads before computation
+        cuda.syncthreads()
+
+        # Compute partial dot product for C[i, j]
+        for k in range(BLOCK_DIM):
+            result += a_shared[pi, k] * b_shared[k, pj]
+
+        # Synchronize threads before loading the next tile
+        cuda.syncthreads()
+
+    # Write result to global memory
+    if i < out_shape[-2] and j < out_shape[-1]:
+        out[batch * out_strides[0] + i * out_strides[-2] + j * out_strides[-1]] = result
 
 
 tensor_matrix_multiply = jit(_tensor_matrix_multiply)
