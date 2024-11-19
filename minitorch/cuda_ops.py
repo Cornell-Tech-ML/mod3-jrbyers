@@ -372,33 +372,30 @@ def tensor_reduce(
         BLOCK_DIM = 1024  # Number of threads per block
         cache = cuda.shared.array(BLOCK_DIM, numba.float64)  # Shared memory
         out_index = cuda.local.array(MAX_DIMS, numba.int32)  # Local array for indexing
-        out_pos = cuda.blockIdx.x  # Index of the current block
+        out_pos = cuda.blockIdx.x  # Index of the current block which maps to the output position
         pos = cuda.threadIdx.x  # Index of the current thread within a block
 
-        # TODO: Implement for Task 3.3.
-        # raise NotImplementedError("Need to implement for Task 3.3")
+        # map the out_pos which is the block id to a position 
+        to_index(out_pos, out_shape, out_index)
+        o = index_to_position(out_index, out_strides)
 
-        # Global thread ID and total number of threads
-        i = cuda.blockIdx.x * cuda.blockDim.x + cuda.threadIdx.x
+        # Reduction size (number of elements along the reduce_dim)
         reduce_size = a_shape[reduce_dim]
 
-        # Initialize shared memory with the neutral value (reduce_value)
-        # we need i threads for out_size * reduce_size because there are more
-        # threads than the out_size (because of the reduction)
-        if i < out_size * reduce_size:
-            to_index(i // reduce_size, out_shape, out_index)  # Map to output tensor index
-            o = index_to_position(out_index, out_strides)
-            if pos < reduce_size:
-                cache[pos] = a_storage[i]  
-            else:
-                cache[pos] = reduce_value
+        # Load elements into shared memory
+        reduce_index = pos
+        if reduce_index < reduce_size:
+            # Compute the position in the input storage for this reduction element
+            a_index = index_to_position(out_index, a_strides) + reduce_index * a_strides[reduce_dim]
+            cache[pos] = a_storage[a_index]
         else:
-            cache[pos] = reduce_value
+            cache[pos] = reduce_value  # Initialize excess threads with neutral value
 
-        # Synchronize threads to ensure shared memory is fully populated
+        # Synchronize threads after loading data into shared memory
         cuda.syncthreads()
 
-        # Perform reduction within shared memory
+        # Perform parallel reduction
+        # pairs are computed two at a time
         stride = 1
         while stride < BLOCK_DIM:
             if pos % (2 * stride) == 0 and pos + stride < BLOCK_DIM:
@@ -406,7 +403,7 @@ def tensor_reduce(
             stride *= 2
             cuda.syncthreads()
 
-        # Write result for this block to global memory
+        # Write the reduced result to global memory
         if pos == 0:
             out[o] = cache[0]
 
@@ -448,8 +445,22 @@ def _mm_practice(out: Storage, a: Storage, b: Storage, size: int) -> None:
     """
     BLOCK_DIM = 32
     # TODO: Implement for Task 3.3.
-    raise NotImplementedError("Need to implement for Task 3.3")
+    #raise NotImplementedError("Need to implement for Task 3.3")
 
+    a_cache = cuda.shared.array(BLOCK_DIM, numba.float64)
+    b_cache = cuda.shared.array(BLOCK_DIM, numba.float64)
+    i = cuda.blockIdx.x * cuda.blockDim.x + cuda.threadIdx.x
+    pos = cuda.threadIdx.x
+
+    # load a into cache
+    # load b into cache
+    if i < 
+
+
+    # synch threads
+
+    # run matmul
+    
 
 
 
