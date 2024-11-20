@@ -464,7 +464,7 @@ def _mm_practice(out: Storage, a: Storage, b: Storage, size: int) -> None:
     i = cuda.blockIdx.x * cuda.blockDim.x + cuda.threadIdx.x
     j = cuda.blockIdx.y * cuda.blockDim.y + cuda.threadIdx.y
 
-    if i < size and j < size:
+    if i < size and j < size:  # guard for threads
         a_cache[i, j] = a[i * size + j]  # load a into cache
         b_cache[i, j] = b[i * size + j]  # load b into cache
 
@@ -546,38 +546,48 @@ def _tensor_matrix_multiply(
     # TODO: Implement for Task 3.4.
     # raise NotImplementedError("Need to implement for Task 3.4")
 
-    c_val = 0.0
+    c_val = 0.0  # accumulate result of dot product
 
     # Loop over blocks of the shared dimension
     shared_dim = a_shape[-1]  # This equals b_shape[-2]
-    num_blocks = (shared_dim + BLOCK_DIM - 1) // BLOCK_DIM
+    num_blocks = (
+        shared_dim + BLOCK_DIM - 1
+    ) // BLOCK_DIM  # number of blocks needed to cover shared dimension
 
+    # loop over blocks of shared dimension
     for block_idx in range(num_blocks):
-        # Load A block into shared memory
-        a_shared[pi, pj] = 0.0
-        b_shared[pi, pj] = 0.0
+        a_shared[pi, pj] = 0.0  # Initialize memory element in the local block a
+        b_shared[pi, pj] = 0.0  # Initialize memory element in the local block a
 
+        # Load block a into shared memory
+        # Ensure thread is within the bounds of A's rows and columns for the current block
         if i < a_shape[-2] and (block_idx * BLOCK_DIM + pj) < a_shape[-1]:
+            # Calculate the global memory index for a's current element
+            # Run this calculation using strides to convert index to position
             a_idx = (
                 batch * a_batch_stride
                 + i * a_strides[-2]
                 + (block_idx * BLOCK_DIM + pj) * a_strides[-1]
             )
+            # Load global value into shared memory
             a_shared[pi, pj] = a_storage[a_idx]
 
         # Load B block into shared memory
         if j < b_shape[-1] and (block_idx * BLOCK_DIM + pi) < b_shape[-2]:
+            # Calculate the global memory index for b's current element
+            # Run this calculation using strides to convert index to position
             b_idx = (
                 batch * b_batch_stride
                 + (block_idx * BLOCK_DIM + pi) * b_strides[-2]
                 + j * b_strides[-1]
             )
+            # Load global value into shared memory
             b_shared[pi, pj] = b_storage[b_idx]
 
         # Synchronize threads to ensure all shared memory loads are complete
         cuda.syncthreads()
 
-        # Compute partial dot product for c[i, j]
+        # Compute partial dot product for c[i, j] using shared blocks
         for k in range(BLOCK_DIM):
             c_val += a_shared[pi, k] * b_shared[k, pj]
 
@@ -585,9 +595,10 @@ def _tensor_matrix_multiply(
         cuda.syncthreads()
 
     # Write the computed value to the global memory
-    if i < out_shape[-2] and j < out_shape[-1]:
+    if i < out_shape[-2] and j < out_shape[-1]:  # Guard for threads
+        # Calculate global position in out suing strides and batch
         out_idx = batch * out_strides[0] + i * out_strides[-2] + j * out_strides[-1]
-        out[out_idx] = c_val
+        out[out_idx] = c_val  # one write to global memory per kernel
 
 
 tensor_matrix_multiply = jit(_tensor_matrix_multiply)
