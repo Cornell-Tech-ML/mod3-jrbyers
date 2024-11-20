@@ -1,5 +1,96 @@
 # MiniTorch Module 3
 
+## Graph for 3.4
+Here is my graph comparing naive operations vs. GPU operation on matrix multiplication.
+<img src="./3.4_timing_graph.png?raw=true" alt="Timing graph" width="400"/>
+
+
+## Plots for Simple Dataset
+
+Results from GPU training
+
+Hyperparameters are:
+* learning rate = 0.01
+* number of epochs = 100
+* size of hidden layer = 100
+
+<img src="./simple_gpu.png?raw=true" alt="Simple GPU Plot" width="400"/>
+
+
+Results from CPU training
+
+Hyperparameters are:
+* learning rate = 0.01
+* number of epochs = 100
+* size of hidden layer = 100
+
+<img src="./simple_cpu.png?raw=true" alt="Simple CPU Plot" width="400"/>
+
+## Plots for Split Dataset
+
+Results from GPU training
+
+Hyperparameters are:
+* learning rate = 0.01
+* number of epochs = 300
+* size of hidden layer = 100
+
+Ed post #413 says full credit will be awarded for achieving 48 correct classifcations or above.
+<img src="./split_gpu.png?raw=true" alt="Split GPU Plot" width="400"/>
+
+
+Results from CPU training
+
+Hyperparameters are:
+* learning rate = 0.01
+* number of epochs = 300
+* size of hidden layer = 100
+
+<img src="./split_cpu.png?raw=true" alt="Split CPU Plot" width="400"/>
+
+## Plots for XOR Dataset
+
+Results from GPU training
+
+Hyperparameters are:
+* learning rate = 0.01
+* number of epochs = 300
+* size of hidden layer = 100
+
+
+Ed post #413 says full credit will be awarded for achieving 48 correct classifcations or above.
+<img src="./xor_gpu.png?raw=true" alt="XOR GPU Plot" width="400"/>
+
+
+Results from CPU training
+
+Hyperparameters are:
+* learning rate = 0.01
+* number of epochs = 300
+* size of hidden layer = 100
+
+Ed post #413 says full credit will be awarded for achieving 48 correct classifcations or above.
+<img src="./xor_cpu.png?raw=true" alt="XOR CPU Plot" width="400"/>
+
+
+## Timing on a larger model
+With following hyperparameters I achieved the following results with GPU and CPU implementations for the simple dataset
+* learning rate = 0.01
+* number of epochs = 100
+* size of hidden layer = 200
+
+GPU time per epoch
+
+<img src="./gpu_big.png?raw=true" alt="gpu_big Plot" width="400"/>
+
+CPU time per epoch
+
+<img src="./cpu_big.png?raw=true" alt="cpu_big Plot" width="400"/>
+
+
+
+#
+
 <img src="https://minitorch.github.io/minitorch.svg" width="50%">
 
 * Docs: https://minitorch.github.io/
