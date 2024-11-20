@@ -13,6 +13,7 @@ from hypothesis.strategies import (
 
 import minitorch
 from minitorch import Tensor, TensorBackend, TensorData, UserIndex, UserShape
+from minitorch.tensor_functions import tensor
 
 from .strategies import small_ints
 
@@ -29,7 +30,7 @@ def vals(draw: DrawFn, size: int, number: SearchStrategy[float]) -> Tensor:
             max_size=size,
         )
     )
-    return minitorch.tensor(pts)
+    return tensor(pts)
 
 
 @composite
