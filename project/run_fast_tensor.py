@@ -53,7 +53,7 @@ class Linear(minitorch.Module):
         assert x.shape[1] == self.weights.value.shape[0], "Input size must match weights size."
 
         batch, in_size = x.shape
-        
+
         # Use matmul for the matrix multiplication of x and weights, followed by addition of bias
         return (x @ self.weights.value).view(batch, self.out_size) + self.bias.value.view(self.out_size)
 

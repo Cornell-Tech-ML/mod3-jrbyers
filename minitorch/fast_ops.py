@@ -287,7 +287,6 @@ def tensor_reduce(
         a_strides: Strides,
         reduce_dim: int,
     ) -> None:
-
         for i in prange(len(out)):
             out_index = np.zeros(len(out_shape), dtype=np.int32)
             reduce_size = a_shape[reduce_dim]
@@ -353,7 +352,7 @@ def _tensor_matrix_multiply(
     """
     # Get the reduction dimension length (shared inner dimension for matrix multiplication)
     sum_dim = a_shape[-1]
-    
+
     # Batch, row, and column strides for a, b, and out
     a_batch_stride = a_strides[0] if a_shape[0] > 1 else 0
     b_batch_stride = b_strides[0] if b_shape[0] > 1 else 0
@@ -361,31 +360,33 @@ def _tensor_matrix_multiply(
     a_row_stride, a_col_stride = a_strides[-2], a_strides[-1]
     b_row_stride, b_col_stride = b_strides[-2], b_strides[-1]
     out_row_stride, out_col_stride = out_strides[-2], out_strides[-1]
-    
+
     # Iterate over each position in `out` in parallel
     for pos in prange(len(out)):
-        
         # compute out_index without function call or index buffer
         batch_idx = pos // (out_shape[-2] * out_shape[-1])
         row_idx = (pos % (out_shape[-2] * out_shape[-1])) // out_shape[-1]
         col_idx = pos % out_shape[-1]
-        
-        # compute the zeroth index position for the associated row in a 
+
+        # compute the zeroth index position for the associated row in a
         a_offset = batch_idx * a_batch_stride + row_idx * a_row_stride
-        # compute the zeroth index position for the associated column in b 
+        # compute the zeroth index position for the associated column in b
         b_offset = batch_idx * b_batch_stride + col_idx * b_col_stride
-        
+
         # Accumulate the result by iterating over the reduction dimension
         result = 0.0
         for s in range(sum_dim):
             a_val = a_storage[a_offset + s * a_col_stride]
             b_val = b_storage[b_offset + s * b_row_stride]
             result += a_val * b_val
-        
+
         # Write the accumulated result to the out storage
-        out_position = batch_idx * out_batch_stride + row_idx * out_row_stride + col_idx * out_col_stride
+        out_position = (
+            batch_idx * out_batch_stride
+            + row_idx * out_row_stride
+            + col_idx * out_col_stride
+        )
         out[out_position] = result
-    
 
 
 tensor_matrix_multiply = njit(_tensor_matrix_multiply, parallel=True)
