@@ -46,7 +46,9 @@ def tensor_data(
 ) -> TensorData:
     if shape is None:
         shape = draw(shapes())
-    size = int(minitorch.prod(shape))
+
+    float_shape = [float(x) for x in shape]
+    size = int(minitorch.prod(float_shape))
     data = draw(lists(numbers, min_size=size, max_size=size))
     permute: List[int] = draw(permutations(range(len(shape))))
     permute_shape = tuple([shape[i] for i in permute])
